@@ -1,0 +1,9 @@
+/* ═══════════════════════════════════════
+   REGISTER STYLES
+   ═══════════════════════════════════════ */
+
+/* Reuses the base layout CSS defined in Login.css,
+   so we import it here directly to prevent duplicating identical blocks.
+   The class names are synced between Register.jsx and Login.jsx intentionally! */
+
+@import './Login.css';

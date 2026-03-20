@@ -1,0 +1,282 @@
+/* ═══════════════════════════════════════
+   CLASS MODAL STYLES
+   ═══════════════════════════════════════ */
+
+/* ── OVERLAY ──────────────────────────── */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(18, 28, 42, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: flex-end;
+  animation: fadeIn 0.3s ease both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── MODAL SHEET ──────────────────────── */
+
+.modal-sheet {
+  width: 100%;
+  background: white;
+  border-radius: 32px 32px 0 0;
+  padding: 24px 24px 48px;
+  max-height: 90vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* iOS scroll fix */
+  scrollbar-width: none; /* Firefox */
+  animation: sheetUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.modal-sheet::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+@keyframes sheetUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.sheet-handle {
+  width: 40px;
+  height: 5px;
+  background: var(--outline-var);
+  opacity: 0.4;
+  border-radius: 99px;
+  margin: 0 auto 24px;
+}
+
+.modal-title {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 900;
+  font-size: 1.4rem;
+  color: var(--on-surface);
+  letter-spacing: -0.02em;
+  margin-bottom: 24px;
+}
+
+/* ── FORM FIELDS ──────────────────────── */
+
+.field-group {
+  margin-bottom: 18px;
+}
+
+.field-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.field-row .field-group {
+  margin-bottom: 0;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.field-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--outline);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.field-input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: none;
+  background: var(--surface-low);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--on-surface);
+  outline: none;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+  box-sizing: border-box;
+}
+
+.field-input:focus {
+  background: white;
+  box-shadow: 0 0 0 2.5px rgba(70, 72, 212, 0.3), 0 4px 16px rgba(70, 72, 212, 0.12), 0 0 30px rgba(70, 72, 212, 0.08);
+}
+
+/* Fix iOS number input spin arrows */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Shake Animation for Validation */
+.input-shake {
+  animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  box-shadow: 0 0 0 2.5px var(--error) !important;
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+/* ── COLOR PICKER ─────────────────────── */
+
+.color-picker-row {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.color-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.35s var(--spring), box-shadow 0.3s ease;
+}
+
+.color-swatch:hover:not(.selected) {
+  transform: scale(1.1);
+  box-shadow: 0 4px 14px rgba(var(--rgba-color), 0.4);
+}
+
+.color-swatch.selected {
+  transform: scale(1.2);
+  box-shadow: 0 6px 20px rgba(var(--rgba-color), 0.5), 0 0 0 3px white, 0 0 0 5px var(--rgba-color);
+}
+
+/* ── SCHEDULE BUILDER ─────────────────── */
+
+.day-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.day-pill {
+  padding: 8px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  border: none;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: all 0.3s var(--spring);
+  background: var(--surface-low);
+  color: var(--outline);
+}
+
+.day-pill:hover:not(.active) {
+  transform: scale(1.08) translateY(-1px);
+}
+
+.day-pill.active {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 4px 14px rgba(70, 72, 212, 0.35), 0 0 30px rgba(70, 72, 212, 0.18);
+  transform: scale(1.05);
+}
+
+.schedule-times-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.active-day-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.active-day-label {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--on-surface);
+  width: 90px;
+}
+
+.time-input {
+  flex: 1;
+  padding: 10px 14px;
+}
+
+/* ── FOOTER ACTIONS ───────────────────── */
+
+.modal-actions {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.save-btn {
+  width: 100%;
+  padding: 18px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, #4648d4, #6063ee);
+  color: white;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 12px 32px rgba(70, 72, 212, 0.38), 0 0 70px rgba(70, 72, 212, 0.22);
+  transition: transform 0.4s var(--spring), box-shadow 0.3s ease;
+  margin-top: 8px;
+}
+
+.save-btn:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 22px 55px rgba(70, 72, 212, 0.48), 0 0 110px rgba(70, 72, 212, 0.3);
+}
+
+.save-btn:active {
+  transform: scale(0.97);
+}
+
+.save-icon {
+  font-size: 20px;
+}
+
+.cancel-btn {
+  width: 100%;
+  padding: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-top: 6px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--outline);
+  text-align: center;
+  transition: color 0.2s;
+}
+
+.cancel-btn:hover {
+  color: var(--error);
+}

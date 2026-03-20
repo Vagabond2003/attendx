@@ -1,0 +1,324 @@
+/* ═══════════════════════════════════════
+   CLASSES STYLES
+   ═══════════════════════════════════════ */
+
+.classes-wrapper {
+  background: var(--surface);
+  min-height: 100vh;
+  padding: 20px 20px 100px 20px;
+  position: relative;
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── HEADER CARD ──────────────────────── */
+
+.classes-header {
+  background: white;
+  border-radius: 28px;
+  padding: 22px 24px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-in-first {
+  animation: cardIn 0.6s var(--spring) 0.05s both;
+}
+
+.header-blob {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(70, 72, 212, 0.1) 0%, transparent 70%);
+  top: -30px;
+  right: -30px;
+  pointer-events: none;
+}
+
+.header-title {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 900;
+  font-size: 1.75rem;
+  color: var(--on-surface);
+  letter-spacing: -0.03em;
+  margin-top: 2px;
+}
+
+.header-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: var(--on-surface-var);
+  margin-top: 4px;
+}
+
+/* Reused from Dashboard */
+.session-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(70, 72, 212, 0.08);
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* ── CLASS LIST & CARDS ───────────────── */
+
+.class-card {
+  background: white;
+  border-radius: 24px;
+  padding: 0;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  position: relative;
+  transition: transform 0.35s var(--spring), box-shadow 0.3s ease;
+  animation: cardIn 0.6s var(--spring) both;
+}
+
+.class-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1), 0 0 50px rgba(70, 72, 212, 0.08);
+}
+
+.class-accent-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  /* background set inline */
+  border-radius: 0; /* flush with edge */
+}
+
+.class-card-inner {
+  padding: 18px 18px 18px 24px;
+}
+
+.class-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.class-info-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.class-name {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--on-surface);
+}
+
+.class-meta {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 0.72rem;
+  color: var(--on-surface-var);
+  margin-top: 2px;
+}
+
+.class-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s var(--spring);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn span {
+  font-size: 18px;
+}
+
+.edit-btn {
+  background: rgba(70, 72, 212, 0.08);
+  color: var(--primary);
+}
+
+.edit-btn:hover {
+  transform: scale(1.12);
+  box-shadow: 0 4px 14px rgba(70, 72, 212, 0.3), 0 0 30px rgba(70, 72, 212, 0.15);
+}
+
+.delete-btn {
+  background: rgba(186, 26, 26, 0.08);
+  color: var(--error);
+}
+
+.delete-btn:hover {
+  transform: scale(1.12);
+  box-shadow: 0 4px 14px rgba(186, 26, 26, 0.3), 0 0 30px rgba(186, 26, 26, 0.15);
+}
+
+/* ── CLASS CARD PROGRESS BAR ──────────── */
+
+.class-progress-section {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.progress-top {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 2px;
+}
+
+.progress-pct {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.progress-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-low);
+  margin-top: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  /* width and background color set inline */
+  transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.progress-meta {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 0.7rem;
+  color: var(--on-surface-var);
+  margin-top: 6px;
+}
+
+/* ── EMPTY STATE ──────────────────────── */
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.empty-icon-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--surface-low);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  color: var(--primary);
+}
+
+.empty-icon-circle span {
+  font-size: 36px;
+}
+
+.empty-title {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--on-surface);
+  text-align: center;
+}
+
+.empty-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 0.82rem;
+  color: var(--on-surface-var);
+  margin-top: 6px;
+  text-align: center;
+}
+
+/* ── FLOATING ADD BUTTON ──────────────── */
+
+.fab-add {
+  position: fixed;
+  bottom: calc(90px + env(safe-area-inset-bottom));
+  right: 24px;
+  z-index: 40;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, #4648d4, #6063ee);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 32px rgba(70, 72, 212, 0.4), 0 0 60px rgba(70, 72, 212, 0.22);
+  transition: transform 0.4s var(--spring), box-shadow 0.3s ease;
+  overflow: hidden; /* For shimmer clip */
+}
+
+.fab-add span {
+  font-size: 26px;
+  position: relative;
+  z-index: 2;
+}
+
+.fab-add:hover {
+  transform: translateY(-4px) scale(1.08);
+  box-shadow: 0 20px 50px rgba(70, 72, 212, 0.52), 0 0 100px rgba(70, 72, 212, 0.3);
+}
+
+.fab-add:active {
+  transform: scale(0.9);
+}
+
+/* Reused Shimmer */
+.btn-shimmer {
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 40%;
+  height: 200%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+  transform: skewX(-20deg);
+  animation: shimmerSweep 2.5s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes shimmerSweep {
+  0%   { left: -60%; opacity: 0; }
+  20%  { opacity: 1; }
+  100% { left: 130%; opacity: 0; }
+}
