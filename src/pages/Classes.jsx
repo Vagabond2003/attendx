@@ -1,25 +1,13 @@
 import { useState, useEffect } from 'react';
 import './Classes.css';
 import ClassModal from '../components/ClassModal';
+import { useClasses } from '../hooks/useClasses';
 
 export default function Classes() {
-  const [classes, setClasses] = useState([
-    {
-      id: 1, name: 'Data Structures', code: 'CSE2103',
-      teacher: 'Dr. Rahman', color: '#4648d4',
-      totalClasses: 18, attended: 15, minimum: 75
-    },
-    {
-      id: 2, name: 'Physics', code: 'PHY1101',
-      teacher: 'Prof. Islam', color: '#904900',
-      totalClasses: 20, attended: 14, minimum: 75
-    },
-    {
-      id: 3, name: 'Mathematics', code: 'MTH1201',
-      teacher: 'Dr. Hossain', color: '#0f766e',
-      totalClasses: 16, attended: 13, minimum: 75
-    },
-  ]);
+  const {
+    classes, loading, error,
+    handleAdd, handleUpdate, handleDelete
+  } = useClasses();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingClass, setEditingClass] = useState(null);
@@ -31,18 +19,18 @@ export default function Classes() {
     return () => clearTimeout(t);
   }, [classes]); // Re-run animation if classes array changes
 
-  const handleSave = (classData) => {
+  const getPct = (cls) => {
+    const total = cls.total_classes || cls.totalClasses || 0;
+    const attended = cls.attended_classes || cls.attended || 0;
+    if (total === 0) return 0;
+    return Math.round((attended / total) * 100);
+  };
+
+  const handleSave = async (classData) => {
     if (editingClass !== null) {
-      setClasses(prev => prev.map(c => 
-        c.id === editingClass.id ? { ...c, ...classData } : c
-      ));
+      await handleUpdate(editingClass.id, classData);
     } else {
-      setClasses(prev => [...prev, {
-        ...classData, 
-        id: Date.now(),
-        totalClasses: 0, 
-        attended: 0
-      }]);
+      await handleAdd(classData);
     }
     setModalOpen(false);
     setEditingClass(null);
@@ -53,9 +41,9 @@ export default function Classes() {
     setModalOpen(true);
   };
 
-  const handleDelete = (classId) => {
+  const handleDeleteClass = async (classId) => {
     if (window.confirm('Delete this class? This cannot be undone.')) {
-      setClasses(prev => prev.filter(c => c.id !== classId));
+      await handleDelete(classId);
     }
   };
 
@@ -73,9 +61,34 @@ export default function Classes() {
         <p className="header-subtitle">Manage your enrolled courses</p>
       </div>
 
+      {/* ERROR STATE */}
+      {error && (
+        <div style={{
+          background: 'rgba(186,26,26,0.07)',
+          border: '1px solid rgba(186,26,26,0.15)',
+          borderRadius: '14px', padding: '12px 16px',
+          color: 'var(--error)', fontSize: '0.82rem',
+          marginBottom: '16px'
+        }}>
+          Failed to load classes: {error}. Pull to refresh.
+        </div>
+      )}
+
       {/* CLASS LIST */}
       <div className="classes-list">
-        {classes.length === 0 ? (
+        {loading ? (
+           <>
+             {[1, 2, 3].map(i => (
+               <div key={i} style={{
+                 height: '120px', borderRadius: '24px',
+                 background: 'linear-gradient(90deg, #e8eeff 25%, #f0f4ff 50%, #e8eeff 75%)',
+                 backgroundSize: '200% 100%',
+                 animation: 'shimmer 1.5s infinite',
+                 marginBottom: '12px'
+               }}></div>
+             ))}
+           </>
+        ) : classes.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon-circle">
               <span className="material-symbols-outlined">menu_book</span>
@@ -85,40 +98,41 @@ export default function Classes() {
           </div>
         ) : (
           classes.map((cls, index) => {
-            const pct = cls.totalClasses > 0 
-              ? Math.round((cls.attended / cls.totalClasses) * 100) 
-              : 0;
+            const pct = getPct(cls);
+            const total = cls.total_classes || cls.totalClasses || 0;
+            const attended = cls.attended_classes || cls.attended || 0;
+            const minimum = cls.minimum_attendance || cls.minimum || 75;
             
             let colorKey = 'var(--error)';
             let bgColor = 'var(--error)';
-            if (pct >= 75) {
+            if (pct >= minimum) {
               colorKey = '#14a33c'; 
               bgColor = '#14a33c';
-            } else if (pct >= 65) {
+            } else if (pct >= minimum - 10) {
               colorKey = '#c96e0a';
               bgColor = '#c96e0a';
             }
 
             return (
               <div 
-                className="class-card" 
+                className="class-card card-in-first" 
                 key={cls.id}
                 style={{ animationDelay: `${0.1 * (index + 1)}s` }}
               >
-                <div className="class-accent-bar" style={{ background: cls.color }}></div>
+                <div className="class-accent-bar" style={{ background: cls.color || '#6366f1' }}></div>
                 <div className="class-card-inner">
                   
                   {/* Top Row */}
                   <div className="class-top-row">
                     <div className="class-info-stack">
                       <h2 className="class-name">{cls.name}</h2>
-                      <span className="class-meta">{cls.code} · {cls.teacher}</span>
+                      <span className="class-meta">{cls.code || ''} {cls.code && cls.teacher ? '·' : ''} {cls.teacher || ''}</span>
                     </div>
                     <div className="class-actions">
                       <button className="icon-btn edit-btn" onClick={() => handleEdit(cls)}>
                         <span className="material-symbols-outlined">edit</span>
                       </button>
-                      <button className="icon-btn delete-btn" onClick={() => handleDelete(cls.id)}>
+                      <button className="icon-btn delete-btn" onClick={() => handleDeleteClass(cls.id)}>
                         <span className="material-symbols-outlined">delete</span>
                       </button>
                     </div>
@@ -141,7 +155,7 @@ export default function Classes() {
                       ></div>
                     </div>
                     <span className="progress-meta">
-                      {cls.attended}/{cls.totalClasses} classes · Min {cls.minimum}%
+                      {attended}/{total} classes · Min {minimum}%
                     </span>
                   </div>
 
