@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import './Dashboard.css';
+import { useDashboard } from '../hooks/useDashboard';
 
 // --- Helper Functions ---
 function getWheelColor(pct) {
@@ -41,6 +42,11 @@ function easeOutBack(t) {
 
 // --- Main Component ---
 export default function Dashboard() {
+  const {
+    loading, overallStats, atRiskClasses,
+    todaysClasses, recentActivity, firstName
+  } = useDashboard();
+
   const [classStatuses, setClassStatuses] = useState({});
 
   // Dynamic Greeting Badge
@@ -57,10 +63,11 @@ export default function Dashboard() {
     weekday: 'short', month: 'short', day: 'numeric'
   });
 
+  const TARGET = overallStats.overallPct || 0;
+
   // Wheel Animation Effect
   useEffect(() => {
     const CIRCUMFERENCE = 2 * Math.PI * 95; // ≈ 596.9
-    const TARGET = 83; // Hardcoded target
     const DURATION = 1900;
     
     let startTime = null;
@@ -79,9 +86,7 @@ export default function Dashboard() {
       const eased = easeOutBack(raw);
       const val = Math.max(0, Math.min(eased * TARGET, 100)); // clamp 0-100
       
-      // We know target <= 100, but easing can overshoot slightly
       const displayVal = Math.max(0, Math.min(Math.round(val), 100)); 
-      
       const offset = CIRCUMFERENCE * (1 - Math.min(val, 100) / 100);
       
       if (arc) arc.style.strokeDashoffset = offset;
@@ -108,7 +113,6 @@ export default function Dashboard() {
       if (raw < 1) {
         animationFrameId = requestAnimationFrame(animate);
       } else {
-        // Final frame setup
         if (arc) arc.style.strokeDashoffset = CIRCUMFERENCE * (1 - TARGET / 100);
         const final = getWheelColor(TARGET);
         if (gs1) gs1.setAttribute('stopColor', final.c1);
@@ -125,35 +129,21 @@ export default function Dashboard() {
     }
 
     const timer = setTimeout(() => {
-      animationFrameId = requestAnimationFrame(animate);
+      if (TARGET > 0) animationFrameId = requestAnimationFrame(animate);
     }, 500);
 
     return () => {
       clearTimeout(timer);
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
     };
-  }, []);
+  }, [TARGET]);
 
   const handleStatusChange = (classIndex, status) => {
     setClassStatuses(prev => ({
       ...prev,
-      [classIndex]: prev[classIndex] === status ? null : status // Toggle off if clicked again
+      [classIndex]: prev[classIndex] === status ? null : status
     }));
   };
-
-  const todayClasses = [
-    { title: "Data Structures", time: "9:00 AM", color: "#4648d4" },
-    { title: "Physics", time: "11:00 AM", color: "#904900" },
-    { title: "Mathematics", time: "2:00 PM", color: "#0f766e" },
-  ];
-
-  const recentActivity = [
-    { status: 'P', action: 'Marked Present', subject: 'Data Structures', meta: 'Today, 9:00 AM', time: '2h ago' },
-    { status: 'A', action: 'Marked Absent',  subject: 'Physics', meta: 'Today, 11:00 AM', time: '4h ago' },
-    { status: 'P', action: 'Marked Present', subject: 'Mathematics', meta: 'Yesterday', time: '1d ago' },
-    { status: 'L', action: 'Marked Late',    subject: 'Data Structures', meta: 'Yesterday', time: '1d ago' },
-    { status: 'P', action: 'Marked Present', subject: 'Physics', meta: '2 days ago', time: '2d ago' },
-  ];
 
   return (
     <div className="dashboard-wrapper">
@@ -164,77 +154,95 @@ export default function Dashboard() {
           <div className="pulse-dot"></div>
           {badgeText}
         </div>
-        <h1 className="greeting-title">Hey, Nafiz 👋</h1>
+        <h1 className="greeting-title">Hey, {firstName} 👋</h1>
         <p className="greeting-date">{todayStr}</p>
       </div>
 
       {/* SECTION 2 - PERCENTAGE WHEEL CARD */}
-      <div className="card card-2 wheel-card">
-        <div id="wheelGlowBg" className="wheel-glow"></div>
-        <h2 className="wheel-subject">Overall Attendance</h2>
-        <p className="wheel-date">Fall Semester 2026</p>
-
-        <div className="wheel-container">
-          <svg viewBox="0 0 220 220" width="220" height="220" className="wheel-svg">
-            <defs>
-              <linearGradient id="wGrad" x1="0" y1="0" x2="1" y2="1">
-                <stop id="gs1" offset="0%" stopColor="#ba1a1a" />
-                <stop id="gs2" offset="100%" stopColor="#e05050" />
-              </linearGradient>
-            </defs>
-            <circle cx="110" cy="110" r="95" fill="none" stroke="var(--surface-low)" strokeWidth="14" />
-            <circle
-              id="wheelArc" cx="110" cy="110" r="95" fill="none"
-              stroke="url(#wGrad)" strokeWidth="14" strokeLinecap="round"
-              strokeDasharray="597" strokeDashoffset="597" className="wheel-arc-active"
-            />
-          </svg>
-          <div className="wheel-overlay">
-            <div className="pct-group">
-              <span id="pctNum" className="pct-num">0</span>
-              <span className="pct-symbol">%</span>
-            </div>
-            <span id="pctStatus" className="pct-status">Calculating</span>
+      {loading ? (
+        <div className="card card-2 wheel-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{
+            width: '220px', height: '220px', borderRadius: '50%',
+            background: 'linear-gradient(90deg, #e8eeff 25%, #f0f4ff 50%, #e8eeff 75%)',
+            backgroundSize: '200% 100%',
+            animation: 'shimmer 1.5s infinite',
+            marginBottom: '28px', marginTop: '14px'
+          }}></div>
+          <div className="stats-row" style={{ width: '100%' }}>
+            {[1,2,3].map(i => (
+               <div key={i} className="stat-pill" style={{
+                 height: '60px', width: '100%',
+                 background: 'linear-gradient(90deg, #e8eeff 25%, #f0f4ff 50%, #e8eeff 75%)',
+                 backgroundSize: '200% 100%',
+                 animation: 'shimmer 1.5s infinite',
+                 border: 'none'
+               }}></div>
+            ))}
           </div>
         </div>
+      ) : (
+        <div className="card card-2 wheel-card">
+          <div id="wheelGlowBg" className="wheel-glow"></div>
+          <h2 className="wheel-subject">Overall Attendance</h2>
+          <p className="wheel-date">Tracking All Subjects</p>
 
-        <div className="stats-row">
-          <div className="stat-pill"><span className="stat-value">18</span><span className="stat-label">TOTAL</span></div>
-          <div className="stat-pill"><span className="stat-value text-primary">15</span><span className="stat-label">ATTENDED</span></div>
-          <div className="stat-pill"><span className="stat-value text-error">3</span><span className="stat-label">MISSED</span></div>
+          <div key={TARGET} className="wheel-container">
+            <svg viewBox="0 0 220 220" width="220" height="220" className="wheel-svg">
+              <defs>
+                <linearGradient id="wGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop id="gs1" offset="0%" stopColor="#ba1a1a" />
+                  <stop id="gs2" offset="100%" stopColor="#e05050" />
+                </linearGradient>
+              </defs>
+              <circle cx="110" cy="110" r="95" fill="none" stroke="var(--surface-low)" strokeWidth="14" />
+              <circle
+                id="wheelArc" cx="110" cy="110" r="95" fill="none"
+                stroke="url(#wGrad)" strokeWidth="14" strokeLinecap="round"
+                strokeDasharray="597" strokeDashoffset="597" className="wheel-arc-active"
+              />
+            </svg>
+            <div className="wheel-overlay">
+              <div className="pct-group">
+                <span id="pctNum" className="pct-num">0</span>
+                <span className="pct-symbol">%</span>
+              </div>
+              <span id="pctStatus" className="pct-status">Calculating</span>
+            </div>
+          </div>
+
+          <div className="stats-row">
+            <div className="stat-pill"><span className="stat-value">{overallStats.totalClasses}</span><span className="stat-label">TOTAL</span></div>
+            <div className="stat-pill"><span className="stat-value text-primary">{overallStats.totalPresent}</span><span className="stat-label">ATTENDED</span></div>
+            <div className="stat-pill"><span className="stat-value text-error">{overallStats.totalAbsent}</span><span className="stat-label">MISSED</span></div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* SECTION 3 - AT-RISK ALERT CARD */}
-      <div className="card card-3 risk-card">
-        <div className="risk-header">
-          <div className="risk-title-group">
-            <span className="material-symbols-outlined risk-icon">warning</span>
-            <span className="risk-title">At Risk</span>
-          </div>
-          <span className="risk-badge">2 subjects</span>
-        </div>
-        
-        <div className="risk-row">
-          <div className="risk-info">
-            <div className="risk-bar"></div>
-            <div className="risk-text-stack">
-              <span className="risk-subject-name">Physics</span><span className="risk-percent">68%</span>
+      {!loading && atRiskClasses.length > 0 && (
+        <div className="card card-3 risk-card">
+          <div className="risk-header">
+            <div className="risk-title-group">
+              <span className="material-symbols-outlined risk-icon">warning</span>
+              <span className="risk-title">At Risk</span>
             </div>
+            <span className="risk-badge">{atRiskClasses.length} subject{atRiskClasses.length !== 1 ? 's' : ''}</span>
           </div>
-          <span className="risk-chip">need 4 more</span>
-        </div>
-
-        <div className="risk-row">
-          <div className="risk-info">
-            <div className="risk-bar"></div>
-            <div className="risk-text-stack">
-              <span className="risk-subject-name">Mathematics</span><span className="risk-percent">71%</span>
+          
+          {atRiskClasses.map(s => (
+            <div className="risk-row" key={s.class_id || s.id || s.name}>
+              <div className="risk-info">
+                <div className="risk-bar" style={{ background: s.color || '#e05050' }}></div>
+                <div className="risk-text-stack">
+                  <span className="risk-subject-name">{s.class_name || s.name || 'Unknown'}</span>
+                  <span className="risk-percent">{s.pct}%</span>
+                </div>
+              </div>
+              <span className="risk-chip">need {s.needed} more</span>
             </div>
-          </div>
-          <span className="risk-chip">need 2 more</span>
+          ))}
         </div>
-      </div>
+      )}
 
       {/* SECTION 4 - TODAY'S SCHEDULE CARD */}
       <div className="card card-4 schedule-card">
@@ -242,14 +250,18 @@ export default function Dashboard() {
           <h2 className="section-title">Today's Classes</h2><span className="section-date">{todayShortStr}</span>
         </div>
 
-        {todayClasses.map((cls, idx) => {
+        {loading ? (
+           <p style={{ textAlign: 'center', padding: '20px 0', color: 'var(--on-surface-var)', fontSize: '0.82rem' }}>Loading...</p>
+        ) : todaysClasses.length === 0 ? (
+           <p style={{ textAlign: 'center', padding: '20px 0', color: 'var(--on-surface-var)', fontSize: '0.82rem' }}>No classes scheduled today</p>
+        ) : todaysClasses.map((cls, idx) => {
           const status = classStatuses[idx];
           return (
-            <div className="schedule-row" key={idx}>
+            <div className="schedule-row" key={cls.id || idx}>
               <div className="schedule-info">
-                <div className="schedule-bar" style={{ background: cls.color }}></div>
+                <div className="schedule-bar" style={{ background: cls.color || '#4648d4' }}></div>
                 <div className="schedule-text-stack">
-                  <span className="schedule-subject-name">{cls.title}</span><span className="schedule-time">{cls.time}</span>
+                  <span className="schedule-subject-name">{cls.name || cls.title}</span><span className="schedule-time">{cls.code || ''}</span>
                 </div>
               </div>
               <div className="quick-actions">
@@ -273,9 +285,15 @@ export default function Dashboard() {
       <div className="card card-5 activity-card">
         <h2 className="section-title mb-activity">Recent Activity</h2>
         
-        {recentActivity.map((item, idx) => (
-          <div className={`activity-item ${idx > 0 ? 'bordered' : ''}`} key={idx}>
-            <div className={`activity-dot dot-${item.status.toLowerCase()}`}></div>
+        {loading ? (
+          <p style={{ textAlign: 'center', padding: '20px 0', color: 'var(--on-surface-var)', fontSize: '0.82rem' }}>Loading activity...</p>
+        ) : recentActivity.length === 0 ? (
+          <p style={{ textAlign: 'center', padding: '20px 0', color: 'var(--on-surface-var)', fontSize: '0.82rem', fontFamily: 'Inter', fontWeight: 500 }}>
+            No recent activity yet
+          </p>
+        ) : recentActivity.map((item, idx) => (
+          <div className={`activity-item ${idx > 0 ? 'bordered' : ''}`} key={item.id || idx}>
+            <div className={`activity-dot dot-${item.dot || 'p'}`}></div>
             <div className="activity-text-stack">
               <span className="activity-action">{item.action}</span>
               <span className="activity-meta">{item.subject} · {item.meta}</span>
