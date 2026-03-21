@@ -3,28 +3,32 @@ import {
   format, startOfWeek, addDays, addWeeks, subWeeks, 
   isSameDay, getDaysInMonth, startOfMonth, getDay, addMonths 
 } from 'date-fns';
+import { useAttendance } from '../hooks/useAttendance';
 import './Attendance.css';
 
 export default function Attendance() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [weekOffset, setWeekOffset] = useState(0);
   const [monthOffset, setMonthOffset] = useState(0);
-  const [statuses, setStatuses] = useState({});
-  const [notes, setNotes] = useState({});
   const [activeNoteKey, setActiveNoteKey] = useState(null);
 
-  const allClasses = [
-    { id: 1, name: 'Data Structures', code: 'CSE2103', color: '#4648d4', schedule: ['Monday', 'Wednesday', 'Friday'] },
-    { id: 2, name: 'Physics', code: 'PHY1101', color: '#904900', schedule: ['Tuesday', 'Thursday'] },
-    { id: 3, name: 'Mathematics', code: 'MTH1201', color: '#0f766e', schedule: ['Monday', 'Wednesday', 'Friday'] },
-  ];
+  const {
+     classes: allClasses,
+     statuses, notes, loading, syncing,
+     setStatuses, setNotes,
+     handleMarkAttendance, handleMarkAll,
+     getScheduleDays
+  } = useAttendance();
 
   // --- Computed Week Values ---
   const today = new Date();
   const weekStart = startOfWeek(addWeeks(today, weekOffset), { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const selectedDayName = format(selectedDate, 'EEEE');
-  const todaysClasses = allClasses.filter(cls => cls.schedule.includes(selectedDayName));
+  
+  const todaysClasses = allClasses.filter(cls =>
+     getScheduleDays(cls).includes(selectedDayName)
+  );
 
   // --- Computed Month Values ---
   const calendarDate = addMonths(startOfMonth(today), monthOffset);
@@ -49,19 +53,8 @@ export default function Attendance() {
     setWeekOffset(diffWeeks);
   };
 
-  const handleMarkAll = () => {
-    const updates = {};
-    todaysClasses.forEach(cls => {
-      updates[makeKey(selectedDate, cls.id)] = 'P';
-    });
-    setStatuses(prev => ({ ...prev, ...updates }));
-  };
-
-  const toggleStatus = (key, btn) => {
-    setStatuses(prev => ({
-      ...prev,
-      [key]: prev[key] === btn ? null : btn
-    }));
+  const toggleStatus = (key, btn, cls) => {
+     handleMarkAttendance(selectedDate, cls.id, btn, notes[key] || '');
   };
 
   return (
@@ -106,7 +99,7 @@ export default function Attendance() {
           {weekDays.map(day => {
             const isSelected = isSameDay(day, selectedDate);
             const isToday = isSameDay(day, today);
-            const hasTodayClasses = allClasses.some(c => c.schedule.includes(format(day, 'EEEE')));
+            const hasTodayClasses = allClasses.some(c => getScheduleDays(c).includes(format(day, 'EEEE')));
             
             let pillClass = 'day-pill-btn';
             if (isSelected) pillClass += ' selected';
@@ -124,17 +117,29 @@ export default function Attendance() {
       </div>
 
       {/* SECTION 3 - CLASS LIST FOR SELECTED DATE */}
-      <div className="card-in card-delay-25 list-card">
+      <div className="card-in card-delay-25 list-card" style={{ position: 'relative' }}>
         <div className="list-header">
           <h2 className="list-title">Classes — {format(selectedDate, 'E')}</h2>
-          {todaysClasses.length > 0 && (
-            <button className="mark-all-btn" onClick={handleMarkAll}>
+          {todaysClasses.length > 0 && !loading && (
+            <button className="mark-all-btn" onClick={() => handleMarkAll(selectedDate, todaysClasses)}>
               Mark All Present
             </button>
           )}
         </div>
 
-        {todaysClasses.length === 0 ? (
+        {loading ? (
+           <div className="class-rows-container">
+             {[1, 2, 3].map(i => (
+               <div key={i} style={{
+                 height: '110px', borderRadius: '20px',
+                 background: 'linear-gradient(90deg, #e8eeff 25%, #f0f4ff 50%, #e8eeff 75%)',
+                 backgroundSize: '200% 100%',
+                 animation: 'shimmer 1.5s infinite',
+                 marginBottom: '12px'
+               }}></div>
+             ))}
+           </div>
+        ) : todaysClasses.length === 0 ? (
           <div className="empty-day-state">
             <span className="material-symbols-outlined emoji-icon">celebration</span>
             <h3 className="empty-title">No classes today! 🎉</h3>
@@ -153,10 +158,10 @@ export default function Attendance() {
                   {/* Top Part */}
                   <div className="row-top-part">
                     <div className="row-info">
-                      <div className="row-accent-bar" style={{ background: cls.color }}></div>
+                      <div className="row-accent-bar" style={{ background: cls.color || '#6366f1' }}></div>
                       <div className="row-text-stack">
                         <span className="row-class-name">{cls.name}</span>
-                        <span className="row-class-code">{cls.code}</span>
+                        <span className="row-class-code">{cls.code || ''}</span>
                       </div>
                     </div>
                     <div className="row-status-area">
@@ -185,7 +190,7 @@ export default function Attendance() {
                         <button
                           key={st}
                           className={`action-btn btn-${st.toLowerCase()} ${isSelected ? 'selected' : ''}`}
-                          onClick={() => toggleStatus(key, st)}
+                          onClick={() => toggleStatus(key, st, cls)}
                         >
                           {isSelected && <div className="btn-shimmer"></div>}
                           <span className="material-symbols-outlined btn-icon">{iconMap[st]}</span>
@@ -211,6 +216,17 @@ export default function Attendance() {
               );
             })}
           </div>
+        )}
+        
+        {syncing && (
+          <div style={{
+            position: 'absolute', bottom: '12px', right: '16px',
+            padding: '4px 10px', borderRadius: '99px',
+            background: 'rgba(70,72,212,0.08)',
+            color: 'var(--primary)', fontSize: '9px',
+            fontWeight: 700, letterSpacing: '0.08em',
+            animation: 'pulse 1s ease-in-out infinite'
+          }}>Syncing...</div>
         )}
       </div>
 
@@ -242,7 +258,7 @@ export default function Attendance() {
             
             // Calculate dot logic
             const dayName = format(dateObj, 'EEEE');
-            const classesOnDay = allClasses.filter(c => c.schedule.includes(dayName));
+            const classesOnDay = allClasses.filter(c => getScheduleDays(c).includes(dayName));
             let dotColor = null;
             
             if (classesOnDay.length > 0) {
