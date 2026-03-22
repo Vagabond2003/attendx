@@ -4,58 +4,7 @@ import {
   ResponsiveContainer, LineChart, Line, Area, Tooltip 
 } from 'recharts';
 import './Stats.css';
-
-const statsData = [
-  {
-    id: 1, name: 'Data Structures', code: 'CSE2103',
-    color: '#4648d4', total: 18, present: 15,
-    absent: 2, late: 1, minimum: 75
-  },
-  {
-    id: 2, name: 'Physics', code: 'PHY1101',
-    color: '#904900', total: 20, present: 14,
-    absent: 5, late: 1, minimum: 75
-  },
-  {
-    id: 3, name: 'Mathematics', code: 'MTH1201',
-    color: '#0f766e', total: 16, present: 13,
-    absent: 2, late: 1, minimum: 75
-  },
-];
-
-const calcPct = (s) => Math.round(((s.present + s.late * 0.5) / s.total) * 100);
-
-const totalPresent = statsData.reduce((a, s) => a + s.present + s.late * 0.5, 0);
-const totalClasses = statsData.reduce((a, s) => a + s.total, 0);
-const overallPct = Math.round((totalPresent / totalClasses) * 100) || 0;
-
-const classesNeeded = (s) => {
-  const pct = calcPct(s);
-  if (pct >= s.minimum) return null;
-  if (s.minimum >= 100) return null;
-  const needed = Math.ceil(
-    (s.minimum * s.total - (s.present + s.late * 0.5) * 100) /
-    (100 - s.minimum)
-  );
-  return Math.max(0, needed);
-};
-
-const canMiss = (s) => {
-  const pct = calcPct(s);
-  if (pct < s.minimum) return null;
-  const maxAbsent = Math.floor(s.total * (1 - s.minimum / 100));
-  return Math.max(0, maxAbsent - s.absent);
-};
-
-const barData = statsData.map(s => {
-  const pct = calcPct(s);
-  return {
-    name: s.name.split(' ')[0],
-    pct: pct,
-    color: pct >= 75 ? '#14a33c' : pct >= 65 ? '#c96e0a' : '#ba1a1a',
-    fullName: s.name
-  };
-});
+import { useStats } from '../hooks/useStats';
 
 const trendData = [
   { day: 'Mar 1',  pct: 90 },
@@ -67,8 +16,17 @@ const trendData = [
 ];
 
 export default function Stats() {
+  const {
+    statsData, loading,
+    calcPct, classesNeeded, canMiss,
+    totalClasses, totalPresent, totalAbsent,
+    overallPct, barData
+  } = useStats();
+
   const [animated, setAnimated] = useState(false);
   const wheelRef = useRef(null);
+  
+  const TARGET = overallPct; // Connect to live
 
   useEffect(() => {
     const t = setTimeout(() => setAnimated(true), 300);
@@ -78,7 +36,7 @@ export default function Stats() {
   useEffect(() => {
     let startTimestamp = null;
     const duration = 1500;
-    const endPct = overallPct;
+    const endPct = TARGET;
 
     const animateWheel = (timestamp) => {
       if (!startTimestamp) startTimestamp = timestamp;
@@ -122,12 +80,14 @@ export default function Stats() {
       }
     };
 
-    wheelRef.current = requestAnimationFrame(animateWheel);
+    if (TARGET > 0) {
+      wheelRef.current = requestAnimationFrame(animateWheel);
+    }
 
     return () => {
       if (wheelRef.current) cancelAnimationFrame(wheelRef.current);
     };
-  }, []); // Explicitly empty dependency array to prevent re-running
+  }, [TARGET]); 
 
   return (
     <div className="stats-wrapper">
@@ -144,60 +104,69 @@ export default function Stats() {
       </div>
 
       {/* SECTION 2 - OVERALL WHEEL + SUMMARY */}
-      <div className="card-in card-delay-15 wheel-card">
-        <div id="statsGlowBg" className="wheel-glow-bg"></div>
-        <h2 className="wheel-label">Overall Attendance</h2>
-        <p className="wheel-sublabel">All subjects combined</p>
-
-        <div className="wheel-container">
-          <svg className="progress-ring" width="220" height="220">
-            <defs>
-              <linearGradient id="statsWGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop id="statsGs1" offset="0%" stopColor="#4648d4" />
-                <stop id="statsGs2" offset="100%" stopColor="#6063ee" />
-              </linearGradient>
-            </defs>
-            <circle
-              className="progress-ring-bg"
-              strokeWidth="16"
-              fill="transparent"
-              r="95"
-              cx="110"
-              cy="110"
-            />
-            <circle
-              id="statsArc"
-              className="progress-ring-circle"
-              strokeWidth="16"
-              fill="transparent"
-              r="95"
-              cx="110"
-              cy="110"
-              strokeLinecap="round"
-              stroke="url(#statsWGrad)"
-            />
-          </svg>
-          <div className="wheel-inner">
-            <span id="statsPctNum" className="wheel-pct">0%</span>
-            <span id="statsPctStatus" className="wheel-status">Loading</span>
+      {loading ? (
+        <div className="card-in card-delay-15 wheel-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ width: '220px', height: '220px', borderRadius: '50%', background: 'linear-gradient(90deg, #e8eeff 25%, #f0f4ff 50%, #e8eeff 75%)', animation: 'shimmer 1.5s infinite', margin: '20px 0', backgroundSize: '200% 100%' }}></div>
+          <div className="summary-pills-row">
+            {[1,2,3].map(i => <div key={i} className="summary-pill" style={{ height: '70px', background: 'linear-gradient(90deg, #e8eeff 25%, #f0f4ff 50%, #e8eeff 75%)', animation: 'shimmer 1.5s infinite', border: 'none', backgroundSize: '200% 100%' }}></div>)}
           </div>
         </div>
+      ) : (
+        <div className="card-in card-delay-15 wheel-card">
+          <div id="statsGlowBg" className="wheel-glow-bg"></div>
+          <h2 className="wheel-label">Overall Attendance</h2>
+          <p className="wheel-sublabel">All subjects combined</p>
 
-        <div className="summary-pills-row">
-          <div className="summary-pill">
-            <span className="pill-val">{totalClasses}</span>
-            <span className="pill-lbl">TOTAL</span>
+          <div key={TARGET} className="wheel-container">
+            <svg className="progress-ring" width="220" height="220">
+              <defs>
+                <linearGradient id="statsWGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop id="statsGs1" offset="0%" stopColor="#4648d4" />
+                  <stop id="statsGs2" offset="100%" stopColor="#6063ee" />
+                </linearGradient>
+              </defs>
+              <circle
+                className="progress-ring-bg"
+                strokeWidth="16"
+                fill="transparent"
+                r="95"
+                cx="110"
+                cy="110"
+              />
+              <circle
+                id="statsArc"
+                className="progress-ring-circle"
+                strokeWidth="16"
+                fill="transparent"
+                r="95"
+                cx="110"
+                cy="110"
+                strokeLinecap="round"
+                stroke="url(#statsWGrad)"
+              />
+            </svg>
+            <div className="wheel-inner">
+              <span id="statsPctNum" className="wheel-pct">0%</span>
+              <span id="statsPctStatus" className="wheel-status">{TARGET === 0 ? 'No Data' : 'Loading'}</span>
+            </div>
           </div>
-          <div className="summary-pill stat-p">
-            <span className="pill-val">{statsData.reduce((a,s)=>a+s.present,0)}</span>
-            <span className="pill-lbl">PRESENT</span>
-          </div>
-          <div className="summary-pill stat-a">
-            <span className="pill-val">{statsData.reduce((a,s)=>a+s.absent,0)}</span>
-            <span className="pill-lbl">ABSENT</span>
+
+          <div className="summary-pills-row">
+            <div className="summary-pill">
+              <span className="pill-val">{totalClasses}</span>
+              <span className="pill-lbl">TOTAL</span>
+            </div>
+            <div className="summary-pill stat-p">
+              <span className="pill-val">{totalPresent}</span>
+              <span className="pill-lbl">PRESENT</span>
+            </div>
+            <div className="summary-pill stat-a">
+              <span className="pill-val">{totalAbsent}</span>
+              <span className="pill-lbl">ABSENT</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* SECTION 3 - PER-SUBJECT BAR CHART */}
       <div className="card-in card-delay-25 chart-card">
@@ -210,45 +179,51 @@ export default function Stats() {
           </div>
         </div>
 
-        <div style={{ width: '100%', height: 200 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={barData} layout="vertical" margin={{ top: 0, right: 40, left: 0, bottom: 0 }}>
-              <XAxis 
-                type="number" 
-                domain={[0, 100]}
-                tick={{ fontSize: 9, fill: 'var(--outline)', fontFamily: "'Inter', sans-serif", fontWeight: 600 }}
-                tickFormatter={(v) => v + '%'}
-                axisLine={false} 
-                tickLine={false} 
-              />
-              <YAxis 
-                type="category" 
-                dataKey="name" 
-                width={70}
-                tick={{ fontSize: 11, fill: 'var(--on-surface)', fontFamily: "'Manrope', sans-serif", fontWeight: 700 }}
-                axisLine={false} 
-                tickLine={false} 
-              />
-              <ReferenceLine 
-                x={75} 
-                stroke="#ba1a1a"
-                strokeDasharray="4 4" 
-                strokeWidth={1.5}
-                label={{ value: 'Min', position: 'insideTopRight', dy: -8, fontSize: 9, fill: '#ba1a1a', fontFamily: "'Inter', sans-serif", fontWeight: 700 }} 
-              />
-              <Bar dataKey="pct" radius={[0, 8, 8, 0]} barSize={20}>
-                {barData.map((entry, index) => (
-                  <Cell key={index} fill={entry.color} />
-                ))}
-                <LabelList 
-                  dataKey="pct"
-                  position="right"
-                  formatter={(v) => v + '%'}
-                  style={{ fontSize: '11px', fontWeight: '800', fontFamily: "'Manrope', sans-serif", fill: 'var(--on-surface)' }} 
+        <div style={{ width: '100%', height: 200, opacity: loading ? 0.3 : 1, transition: 'opacity 0.3s' }}>
+          {barData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={barData} layout="vertical" margin={{ top: 0, right: 40, left: 0, bottom: 0 }}>
+                <XAxis 
+                  type="number" 
+                  domain={[0, 100]}
+                  tick={{ fontSize: 9, fill: 'var(--outline)', fontFamily: "'Inter', sans-serif", fontWeight: 600 }}
+                  tickFormatter={(v) => v + '%'}
+                  axisLine={false} 
+                  tickLine={false} 
                 />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+                <YAxis 
+                  type="category" 
+                  dataKey="name" 
+                  width={70}
+                  tick={{ fontSize: 11, fill: 'var(--on-surface)', fontFamily: "'Manrope', sans-serif", fontWeight: 700 }}
+                  axisLine={false} 
+                  tickLine={false} 
+                />
+                <ReferenceLine 
+                  x={75} 
+                  stroke="#ba1a1a"
+                  strokeDasharray="4 4" 
+                  strokeWidth={1.5}
+                  label={{ value: 'Min', position: 'insideTopRight', dy: -8, fontSize: 9, fill: '#ba1a1a', fontFamily: "'Inter', sans-serif", fontWeight: 700 }} 
+                />
+                <Bar dataKey="pct" radius={[0, 8, 8, 0]} barSize={20} isAnimationActive={!loading}>
+                  {barData.map((entry, index) => (
+                    <Cell key={index} fill={entry.color} />
+                  ))}
+                  <LabelList 
+                    dataKey="pct"
+                    position="right"
+                    formatter={(v) => v + '%'}
+                    style={{ fontSize: '11px', fontWeight: '800', fontFamily: "'Manrope', sans-serif", fill: 'var(--on-surface)' }} 
+                  />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+              <span style={{ fontSize: '0.82rem', fontFamily: 'Inter', fontWeight: 500, color: 'var(--on-surface-var)' }}>No breakdown available</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -320,74 +295,86 @@ export default function Stats() {
       {/* SECTION 5 - SUBJECT DETAIL CARDS */}
       <h3 className="section-label card-in card-delay-40">SUBJECT DETAILS</h3>
       
-      {statsData.map((s, index) => {
-        const pct = calcPct(s);
-        const color = pct >= 75 ? '#14a33c' : pct >= 65 ? '#c96e0a' : 'var(--error)';
-        const needed = classesNeeded(s);
-        const miss = canMiss(s);
+      {loading ? (
+        <div style={{ textAlign: 'center', margin: '40px 0' }}>
+           <p style={{ color: 'var(--on-surface-var)', fontSize: '0.9rem', fontFamily: 'Inter' }}>Loading attendance analytics...</p>
+        </div>
+      ) : statsData.length === 0 ? (
+        <div style={{ textAlign: 'center', margin: '60px 0', opacity: 0.6 }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '48px', color: 'var(--outline-var)', marginBottom: '16px' }}>bar_chart</span>
+          <h3 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: '1rem', color: 'var(--on-surface)', marginBottom: '8px' }}>No attendance data yet</h3>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '0.8rem', color: 'var(--on-surface-var)' }}>Start marking attendance to see your stats</p>
+        </div>
+      ) : (
+        statsData.map((s, index) => {
+          const pct = calcPct(s);
+          const color = pct >= 75 ? '#14a33c' : pct >= 65 ? '#c96e0a' : 'var(--error)';
+          const needed = classesNeeded(s);
+          const miss = canMiss(s);
 
-        return (
-          <div 
-            key={s.id} 
-            className="subject-detail-card card-in" 
-            style={{ animationDelay: `${0.45 + (index * 0.08)}s` }}
-          >
-            <div className="subject-accent-bar" style={{ background: s.color }}></div>
-            
-            <div className="subject-top-row">
-              <div className="subject-titles">
-                <span className="subject-name">{s.name}</span>
-                <span className="subject-code">{s.code}</span>
+          return (
+            <div 
+              key={s.id || index} 
+              className="subject-detail-card card-in" 
+              style={{ animationDelay: `${0.45 + (index * 0.08)}s` }}
+            >
+              <div className="subject-accent-bar" style={{ background: s.color || '#4648d4' }}></div>
+              
+              <div className="subject-top-row">
+                <div className="subject-titles">
+                  <span className="subject-name">{s.name}</span>
+                  <span className="subject-code">{s.code}</span>
+                </div>
+                <div className="subject-big-pct" style={{ color }}>
+                  {pct}%
+                </div>
               </div>
-              <div className="subject-big-pct" style={{ color }}>
-                {pct}%
+
+              <div className="subject-progress-track">
+                <div 
+                  className="subject-progress-fill" 
+                  style={{ 
+                    width: animated ? `${pct}%` : '0%',
+                    background: color
+                  }}
+                ></div>
               </div>
+
+              <div className="subject-stats-row">
+                <div className="mini-counter">
+                  <span className="mini-dot stat-p"></span>
+                  <span className="mini-val">{s.present}</span>
+                  <span className="mini-lbl">present</span>
+                </div>
+                <div className="mini-counter">
+                  <span className="mini-dot stat-a"></span>
+                  <span className="mini-val">{s.absent}</span>
+                  <span className="mini-lbl">absent</span>
+                </div>
+                <div className="mini-counter">
+                  <span className="mini-dot stat-l"></span>
+                  <span className="mini-val">{s.late}</span>
+                  <span className="mini-lbl">late</span>
+                </div>
+              </div>
+
+              {needed !== null && (
+                <div className="safety-chip at-risk">
+                  <span className="material-symbols-outlined chip-icon">warning</span>
+                  <span className="chip-text">Attend {needed} more to reach {s.minimum}%</span>
+                </div>
+              )}
+              
+              {miss !== null && (
+                <div className="safety-chip safe">
+                  <span className="material-symbols-outlined chip-icon">check_circle</span>
+                  <span className="chip-text">Safe! Can miss {miss} more classes</span>
+                </div>
+              )}
             </div>
-
-            <div className="subject-progress-track">
-              <div 
-                className="subject-progress-fill" 
-                style={{ 
-                  width: animated ? `${pct}%` : '0%',
-                  background: color
-                }}
-              ></div>
-            </div>
-
-            <div className="subject-stats-row">
-              <div className="mini-counter">
-                <span className="mini-dot stat-p"></span>
-                <span className="mini-val">{s.present}</span>
-                <span className="mini-lbl">present</span>
-              </div>
-              <div className="mini-counter">
-                <span className="mini-dot stat-a"></span>
-                <span className="mini-val">{s.absent}</span>
-                <span className="mini-lbl">absent</span>
-              </div>
-              <div className="mini-counter">
-                <span className="mini-dot stat-l"></span>
-                <span className="mini-val">{s.late}</span>
-                <span className="mini-lbl">late</span>
-              </div>
-            </div>
-
-            {needed !== null && (
-              <div className="safety-chip at-risk">
-                <span className="material-symbols-outlined chip-icon">warning</span>
-                <span className="chip-text">Attend {needed} more to reach {s.minimum}%</span>
-              </div>
-            )}
-            
-            {miss !== null && (
-              <div className="safety-chip safe">
-                <span className="material-symbols-outlined chip-icon">check_circle</span>
-                <span className="chip-text">Safe! Can miss {miss} more classes</span>
-              </div>
-            )}
-          </div>
-        );
-      })}
+          );
+        })
+      )}
 
     </div>
   );
